@@ -64,8 +64,31 @@ and only add the functions to the actual package when you think you won't
 edit them every 5 min. Then your next notebook will be thinner, as it only 
 need to `from mypackage import my_func` instead of having the whole body inside.
 
-fortran with f2py
------------------
+Additional Notes
+================
+
+packaging
+---------
+
+The built-in packaging in python 2.7 is distutil:
+
+    setup(name = 'mypackage',
+      description       = "example package using c++ and fortran",
+      author            = "Your Name",
+      packages = ["mypackage"],  # also add subpackages !!
+      scripts = ["scripts/myscript.py"],  # add scripts to be called globally
+      )
+
+It is possible the `ext_modules` parameter to setup.py, but this would
+work for only one of fortran-f2py or cython extensions. This is because 
+numpy defined its own subclass of distutils Extension, while cython 
+requires a `build_ext` parameter. So in this example, we first install the
+python package without any extension (first) setup, then install the 
+cython and f2py extensions as subpackages, with separate setup calls.
+
+
+packaging extension : fortran + f2py
+------------------------------------
 The simplest to use (if you know fortran). Basically, as long as your fortan 
 code only have simple types as input/output (scalars, arrays, strings), 
 and make use of the intent(in) / intent(out) qualifiers, you do not need to 
@@ -83,8 +106,8 @@ do anything more than use numpy-extended Extension class and setup function:
         ext_modules = [flib]
         )
 
-c/c++ with cython
------------------
+packaging extension : c/c++ + cython
+-------------------------------------
 In addition to c/c++ source files, it is necessary to add a definition 
 indicating the c++ header:
 
@@ -94,4 +117,21 @@ indicating the c++ header:
 (yes, it is redundant since this info is already present in my_header.h
 I am happy to hear your suggestion for less redundant alternatives)
 
-And a wrapper in cython (see cython/*pyx file)
+And a wrapper in cython (see `cython/*pyx` file)
+
+When this is done, the setup.py part is not more difficult than f2py:
+
+    from distutils.extension import Extension
+    from Cython.Distutils import build_ext
+
+    clib = Extension("mypackage.clib",  # indicate where it should be available !
+                          sources=["cython/my_func.pyx",
+                                   "src_cpp/my_func.cpp",
+                                   ],
+                          extra_compile_args=["-O3", "--std=c++11", "-ffast-math", "-Wall"],
+                          language="c++")
+
+    setup(
+        cmdclass = {'build_ext': build_ext},
+        ext_modules = [clib]
+        )
