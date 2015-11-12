@@ -25,10 +25,10 @@ Then you may:
 
 - execute myscript.py from anywhere on your system (to see excellent argparse at work)
 
-    myscript.py --help
-    myscript.py -a 1 2 3 -b 2 2 2
-    myscript.py -a 1 2 3 -b 2 2 2 -o c_div
-    myscript.py -a 1 2 3 -b 2 2 2 -o f_mult
+        myscript.py --help
+        myscript.py -a 1 2 3 -b 2 2 2
+        myscript.py -a 1 2 3 -b 2 2 2 -o c_div
+        myscript.py -a 1 2 3 -b 2 2 2 -o f_mult
 
 - copy the notebook template in your work directory, and start working...
 
