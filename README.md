@@ -64,11 +64,14 @@ and only add the functions to the actual package when you think you won't
 edit them every 5 min. Then your next notebook will be thinner, as it only 
 need to `from mypackage import my_func` instead of having the whole body inside.
 
-Additional Notes
-================
+Notes on packaging
+------------------
 
-packaging
----------
+Packaging is useful to have your code importable from everywhere (as any package installed with pip)
+and to cleanly separate base functionality that you do not modify too often from daily work that 
+will be done preferentially in the notebook, or anywhere on the disk with various input data, 
+notes, output figures etc..., which you do not want to have tracked in git but instead archived.
+
 
 The built-in packaging in python 2.7 is distutil:
 
@@ -79,18 +82,22 @@ The built-in packaging in python 2.7 is distutil:
       scripts = ["scripts/myscript.py"],  # add scripts to be called globally
       )
 
-It is possible the `ext_modules` parameter to setup.py, but this would
-work for only one of fortran-f2py or cython extensions. This is because 
-numpy defined its own subclass of distutils Extension, while cython 
-requires a `build_ext` parameter. So in this example, we first install the
+Extensions written are added via a `ext_modules` parameter. 
+f2py and cython have highly simplified the way of programming extensions, 
+by providing their own `setup` function and an `Extension` subclass (for f2py) 
+or by providing a user-defined `build_ext` parameter (cython). 
+
+The way they do that does not seem to be compatible, so if both are to be
+used in the same pacakge, this needs to be done with two separate `setup` calls.
+
+So in this example, we first install the
 python package without any extension (first) setup, then install the 
-cython and f2py extensions as subpackages, with separate setup calls.
+cython and f2py extensions as subpackages, with twp additional setup calls.
 
-
-packaging extension : fortran + f2py
+... extension : fortran + f2py
 ------------------------------------
 The simplest to use (if you know fortran). Basically, as long as your fortan 
-code only have simple types as input/output (scalars, arrays, strings), 
+code only have simple types as input/output (scalars, arrays, strings) (no derived types!!), 
 and make use of the intent(in) / intent(out) qualifiers, you do not need to 
 do anything more than use numpy-extended Extension class and setup function:
 
@@ -106,7 +113,7 @@ do anything more than use numpy-extended Extension class and setup function:
         ext_modules = [flib]
         )
 
-packaging extension : c/c++ + cython
+... extension : c/c++ + cython
 -------------------------------------
 In addition to c/c++ source files, it is necessary to add a definition 
 indicating the c++ header:
