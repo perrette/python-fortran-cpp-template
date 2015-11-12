@@ -1,2 +1,2 @@
-cython/my_func.cpp
-mypackage/version.py
+version.py
+.ipynb_checkpoints

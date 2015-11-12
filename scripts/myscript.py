@@ -2,7 +2,7 @@
 """Template script
 """
 import os, sys
-from mypackage import py_add, f_mult, c_div
+from mypackage import py_add, f_mult, c_div, __version__
 
 if __name__ == '__main__':
 
@@ -11,6 +11,7 @@ if __name__ == '__main__':
     parser.add_argument("-a", type=float, nargs=3, help="first operand", required=True)
     parser.add_argument("-b", type=float, nargs=3, help="second operand", required=True)
     parser.add_argument("-o","--operator", default="py_add", choices=["f_mult", "py_add", "c_div"], help="operator")
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s' + 'from mypackage (%s)'%(__version__))
 
     args = parser.parse_args()
 
