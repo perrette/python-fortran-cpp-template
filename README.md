@@ -92,7 +92,7 @@ used in the same pacakge, this needs to be done with two separate `setup` calls.
 
 So in this example, we first install the
 python package without any extension (first) setup, then install the 
-cython and f2py extensions as subpackages, with twp additional setup calls.
+cython and f2py extensions as subpackages, with two additional setup calls.
 
 ... extension : fortran + f2py
 ------------------------------------
@@ -106,7 +106,7 @@ do anything more than use numpy-extended Extension class and setup function:
 
     flib = Extension(name = 'mypackage.flib',
                      extra_compile_args = ['-O3'],
-                     sources = ['src_fortran/mymodule.f90'], # you may add several modules files under the same extension
+                     sources = ['src_fortran/mymodule.f90'], # you may add several module files under the same extension
                      )
 
     setup(
@@ -142,3 +142,8 @@ When this is done, the setup.py part is not more difficult than f2py:
         cmdclass = {'build_ext': build_ext},
         ext_modules = [clib]
         )
+
+
+Credits
+-------
+Much of the cython part was inspired by the [dbg](https://github.com/pism/regional-tools) package.
