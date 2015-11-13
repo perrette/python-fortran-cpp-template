@@ -64,6 +64,27 @@ and only add the functions to the actual package when you think you won't
 edit them every 5 min. Then your next notebook will be thinner, as it only 
 need to `from mypackage import my_func` instead of having the whole body inside.
 
+Note, if you need to modify / update some piece of packaged code later, you can always
+use the magicc command %load mymodule.py to have the content of the file
+loaded in the notebook cell, then edit out the unnecessary part, and expand / debug 
+the bit of code you are interested in from within the notebook, without having
+to re-install the whole package at every new change. When you are happy with the changes, 
+copy back into the actual package, make a git commit etc..(of course, this assumes the 
+bit you want to edit is not a dependency for other parts of the code)
+
+Limitations of f2py fortran
+---------------------------
+Just a few things out of my own experience with f2py (please refer to [the official doc](http://docs.scipy.org/doc/numpy-dev/f2py) for more exhaustive information).
+- use ìntent(in/out/inout) mentions
+- use *simple* input/output arguments in subroutines and functions. This means in particular, no derived type, no allocatable arrays. [Some tools](https://github.com/jameskermode/f90wrap) seem to relax this constraint, but not sure this will work for packaging.
+- the approach of globally defining `integer, parameter :: dp = kind(0.d0)` and then using `real(dp)` 
+instead of `double precision`, as encouraged [on fortran90.org](http://www.fortran90.org/src/best-practices.html#floating-point-numbers), 
+does *not* work with f2py. You should use old-fashioned `double precision`
+(or plain `real(8)`, which is more confusing to me than just `double precision`).
+- using `private` module with only a few `public` methods/functions does *not* work when wrapping `f2py`. `f2py` blindly attemps to wrap everything it finds in the module, and a subsequent `use moodule, only: my_private_func` 
+will fail... So keep everything public.
+
+
 Notes on packaging
 ------------------
 
