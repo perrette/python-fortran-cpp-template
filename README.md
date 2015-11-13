@@ -65,25 +65,12 @@ edit them every 5 min. Then your next notebook will be thinner, as it only
 need to `from mypackage import my_func` instead of having the whole body inside.
 
 Note, if you need to modify / update some piece of packaged code later, you can always
-use the magicc command %load mymodule.py to have the content of the file
+use the magicc command `%load mymodule.py` to have the content of the file
 loaded in the notebook cell, then edit out the unnecessary part, and expand / debug 
 the bit of code you are interested in from within the notebook, without having
 to re-install the whole package at every new change. When you are happy with the changes, 
 copy back into the actual package, make a git commit etc..(of course, this assumes the 
 bit you want to edit is not a dependency for other parts of the code)
-
-Limitations of f2py fortran
----------------------------
-Just a few things out of my own experience with f2py (please refer to [the official doc](http://docs.scipy.org/doc/numpy-dev/f2py) for more exhaustive information).
-- use ìntent(in/out/inout) mentions
-- use *simple* input/output arguments in subroutines and functions. This means in particular, no derived type, no allocatable arrays. [Some tools](https://github.com/jameskermode/f90wrap) seem to relax this constraint, but not sure this will work for packaging.
-- the approach of globally defining `integer, parameter :: dp = kind(0.d0)` and then using `real(dp)` 
-instead of `double precision`, as encouraged [on fortran90.org](http://www.fortran90.org/src/best-practices.html#floating-point-numbers), 
-does *not* work with f2py. You should use old-fashioned `double precision`
-(or plain `real(8)`, which is more confusing to me than just `double precision`).
-- using `private` module with only a few `public` methods/functions does *not* work when wrapping `f2py`. `f2py` blindly attemps to wrap everything it finds in the module, and a subsequent `use moodule, only: my_private_func` 
-will fail... So keep everything public.
-
 
 Notes on packaging
 ------------------
@@ -164,6 +151,29 @@ When this is done, the setup.py part is not more difficult than f2py:
         ext_modules = [clib]
         )
 
+
+Limitations of f2py fortran
+---------------------------
+Just a few things out of my own experience with f2py (please refer to [the official doc](http://docs.scipy.org/doc/numpy-dev/f2py) for more exhaustive information).
+- use ìntent(in/out/inout) mentions
+- use *simple* input/output arguments in subroutines and functions. This means in particular, no derived type, no allocatable arrays. [f90wrap](https://github.com/jameskermode/f90wrap) seem to relax this constraint, but not sure this will work for packaging.
+- the approach of globally defining `integer, parameter :: dp = kind(0.d0)` and then using `real(dp)` 
+instead of `double precision`, as encouraged [on fortran90.org](http://www.fortran90.org/src/best-practices.html#floating-point-numbers), 
+does *not* work with f2py. You should use old-fashioned `double precision`
+(or plain `real(8)`, which is more confusing to me than just `double precision`).
+- using `private` module with only a few `public` methods/functions does *not* work when wrapping `f2py`. `f2py` blindly attemps to wrap everything it finds in the module, and a subsequent `use moodule, only: my_private_func` 
+will fail... So keep everything public.
+- *Avoid optional arguments*. `present` function for optional arguments does not work properly. An optional floating point argument will have the value 0 even though it is not actually provided. Again [f90wrap](https://github.com/jameskermode/f90wrap) provides a work-around, but I do not see clearly how to write a custom setup.py file using f90wrap, so I will leave it for now.
+- A work around for some of these limitations is to create a new module that import only the relevant
+functions that you want to see wrap, and write a new, f2py-compliant fortran function/subroutine...
+If you are writing a wrapper anyway, you may alternatively use `iso_c_binding` as described below. Otherwise, again the [f90wrap](https://github.com/jameskermode/f90wrap) should be tested as a command-line tool to re-write your sources into something compatible.
+
+iso_c_binding for fortran : cython and ctypes
+---------------------------------------------
+It is also possible to make your fortran code c-compatible, using the `iso_c_binding` module in fortran, by 
+following instructions on [fortran90.org](http://www.fortran90.org/src/best-practices.html#interfacing-with-c). 
+This involves more changes to your source code than f2py would need, but then your code should also be callable
+from C++. And the C++ wrapping techniques (such as `cython` or `ctypes`) become available, as described [there](http://www.fortran90.org/src/best-practices.html#interfacing-with-python).
 
 Credits
 -------
