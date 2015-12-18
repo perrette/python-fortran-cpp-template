@@ -64,11 +64,22 @@ and only add the functions to the actual package when you think you won't
 edit them every 5 min. Then your next notebook will be thinner, as it only 
 need to `from mypackage import my_func` instead of having the whole body inside.
 
-Additional Notes
-================
+Note, if you need to modify / update some piece of packaged code later, you can always
+use the magicc command `%load mymodule.py` to have the content of the file
+loaded in the notebook cell, then edit out the unnecessary part, and expand / debug 
+the bit of code you are interested in from within the notebook, without having
+to re-install the whole package at every new change. When you are happy with the changes, 
+copy back into the actual package, make a git commit etc..(of course, this assumes the 
+bit you want to edit is not a dependency for other parts of the code)
 
-packaging
----------
+Notes on packaging
+------------------
+
+Packaging is useful to have your code importable from everywhere (as any package installed with pip)
+and to cleanly separate base functionality that you do not modify too often from daily work that 
+will be done preferentially in the notebook, or anywhere on the disk with various input data, 
+notes, output figures etc..., which you do not want to have tracked in git but instead archived.
+
 
 The built-in packaging in python 2.7 is distutil:
 
@@ -79,18 +90,22 @@ The built-in packaging in python 2.7 is distutil:
       scripts = ["scripts/myscript.py"],  # add scripts to be called globally
       )
 
-It is possible the `ext_modules` parameter to setup.py, but this would
-work for only one of fortran-f2py or cython extensions. This is because 
-numpy defined its own subclass of distutils Extension, while cython 
-requires a `build_ext` parameter. So in this example, we first install the
+Extensions written are added via a `ext_modules` parameter. 
+f2py and cython have highly simplified the way of programming extensions, 
+by providing their own `setup` function and an `Extension` subclass (for f2py) 
+or by providing a user-defined `build_ext` parameter (cython). 
+
+The way they do that does not seem to be compatible, so if both are to be
+used in the same pacakge, this needs to be done with two separate `setup` calls.
+
+So in this example, we first install the
 python package without any extension (first) setup, then install the 
-cython and f2py extensions as subpackages, with separate setup calls.
+cython and f2py extensions as subpackages, with two additional setup calls.
 
-
-packaging extension : fortran + f2py
+... extension : fortran + f2py
 ------------------------------------
 The simplest to use (if you know fortran). Basically, as long as your fortan 
-code only have simple types as input/output (scalars, arrays, strings), 
+code only have simple types as input/output (scalars, arrays, strings) (no derived types!!), 
 and make use of the intent(in) / intent(out) qualifiers, you do not need to 
 do anything more than use numpy-extended Extension class and setup function:
 
@@ -99,14 +114,14 @@ do anything more than use numpy-extended Extension class and setup function:
 
     flib = Extension(name = 'mypackage.flib',
                      extra_compile_args = ['-O3'],
-                     sources = ['src_fortran/mymodule.f90'], # you may add several modules files under the same extension
+                     sources = ['src_fortran/mymodule.f90'], # you may add several module files under the same extension
                      )
 
     setup(
         ext_modules = [flib]
         )
 
-packaging extension : c/c++ + cython
+... extension : c/c++ + cython
 -------------------------------------
 In addition to c/c++ source files, it is necessary to add a definition 
 indicating the c++ header:
@@ -135,3 +150,31 @@ When this is done, the setup.py part is not more difficult than f2py:
         cmdclass = {'build_ext': build_ext},
         ext_modules = [clib]
         )
+
+
+Limitations of f2py fortran
+---------------------------
+Just a few things out of my own experience with f2py (please refer to [the official doc](http://docs.scipy.org/doc/numpy-dev/f2py) for more exhaustive information).
+- use ìntent(in/out/inout) mentions
+- use *simple* input/output arguments in subroutines and functions. This means in particular, no derived type, no allocatable arrays. [f90wrap](https://github.com/jameskermode/f90wrap) seem to relax this constraint, but not sure this will work for packaging.
+- the approach of globally defining `integer, parameter :: dp = kind(0.d0)` and then using `real(dp)` 
+instead of `double precision`, as encouraged [on fortran90.org](http://www.fortran90.org/src/best-practices.html#floating-point-numbers), 
+does *not* work with f2py. You should use old-fashioned `double precision`
+(or plain `real(8)`, which is more confusing to me than just `double precision`).
+- using `private` module with only a few `public` methods/functions does *not* work when wrapping `f2py`. `f2py` blindly attemps to wrap everything it finds in the module, and a subsequent `use moodule, only: my_private_func` 
+will fail... So keep everything public.
+- *Avoid optional arguments*. `present` function for optional arguments does not work properly. An optional floating point argument will have the value 0 even though it is not actually provided. Again [f90wrap](https://github.com/jameskermode/f90wrap) provides a work-around, but I do not see clearly how to write a custom setup.py file using f90wrap, so I will leave it for now.
+- A work around for some of these limitations is to create a new module that import only the relevant
+functions that you want to see wrap, and write a new, f2py-compliant fortran function/subroutine...
+If you are writing a wrapper anyway, you may alternatively use `iso_c_binding` as described below. Otherwise, again the [f90wrap](https://github.com/jameskermode/f90wrap) should be tested as a command-line tool to re-write your sources into something compatible.
+
+iso_c_binding for fortran : cython and ctypes
+---------------------------------------------
+It is also possible to make your fortran code c-compatible, using the `iso_c_binding` module in fortran, by 
+following instructions on [fortran90.org](http://www.fortran90.org/src/best-practices.html#interfacing-with-c). 
+This involves more changes to your source code than f2py would need, but then your code should also be callable
+from C++. And the C++ wrapping techniques (such as `cython` or `ctypes`) become available, as described [there](http://www.fortran90.org/src/best-practices.html#interfacing-with-python).
+
+Credits
+-------
+Much of the cython part was inspired by the [dbg](https://github.com/pism/regional-tools) package.
