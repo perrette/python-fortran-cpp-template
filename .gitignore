@@ -1,2 +1,7 @@
-version.py
+*.pyc
+*.so
+*.o
+*.a
 .ipynb_checkpoints
+build
+cython/my_func.cpp

@@ -5,3 +5,7 @@ from .version import VERSION as __version__
 # This is not always desirable, especially when this implies heavy dependencies
 # that are not always needed. 
 from .core import *
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
